@@ -3,8 +3,13 @@ package com.binance.api.examples;
 import com.binance.api.client.BinanceApiClientFactory;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.domain.market.CandlestickInterval;
+import com.binance.api.client.util.MoniterTask;
 
 import java.io.IOException;
+import java.sql.SQLOutput;
+import java.sql.Time;
+import java.util.Collections;
+import java.util.Timer;
 
 /**
  * Market data stream endpoints examples.
@@ -17,12 +22,18 @@ public class MarketDataStreamExample {
     BinanceApiWebSocketClient client = BinanceApiClientFactory.newInstance().newWebSocketClient();
 
     // Listen for aggregated trade events for ETH/BTC
-    client.onAggTradeEvent("ethbtc", response -> System.out.println(response));
+//    client.onAggTradeEvent("ethbtc,ltcbtc", response -> {});
+
 
     // Listen for changes in the order book in ETH/BTC
-    client.onDepthEvent("ethbtc", response -> System.out.println(response));
+    client.onDepthEvent("ethbtc,ltcbtc", response -> {});
 
-    // Obtain 1m candlesticks in real-time for ETH/BTC
-    client.onCandlestickEvent("ethbtc", CandlestickInterval.ONE_MINUTE, response -> System.out.println(response));
+    client.onLimitDepthEvent("ethbtc,ltcbtc", 10, response -> System.out.println(response));
+
+    // Obtain 1m c
+    // esticks in real-time for ETH/BTC
+//    client.onCandlestickEvent("ethbtc,ltcbtc", CandlestickInterval.ONE_MINUTE, response -> {});
+
+    new Timer().schedule(new MoniterTask(), 1000 *10, 5000);
   }
 }

@@ -3,17 +3,16 @@ package com.binance.api.client.impl;
 import com.binance.api.client.BinanceApiCallback;
 import com.binance.api.client.BinanceApiWebSocketClient;
 import com.binance.api.client.constant.BinanceApiConstants;
-import com.binance.api.client.domain.event.AggTradeEvent;
-import com.binance.api.client.domain.event.AllMarketTickersEvent;
-import com.binance.api.client.domain.event.CandlestickEvent;
-import com.binance.api.client.domain.event.DepthEvent;
-import com.binance.api.client.domain.event.UserDataUpdateEvent;
+import com.binance.api.client.domain.event.*;
 import com.binance.api.client.domain.market.CandlestickInterval;
+import com.binance.api.client.util.ReflectUtil;
+import com.binance.api.client.util.WebSocketMoniterContainer;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.WebSocket;
+import okhttp3.internal.ws.RealWebSocket;
 
 import java.io.Closeable;
 import java.util.Arrays;
@@ -29,6 +28,15 @@ public class BinanceApiWebSocketClientImpl implements BinanceApiWebSocketClient,
 
     public BinanceApiWebSocketClientImpl(OkHttpClient client) {
         this.client = client;
+    }
+
+    @Override
+    public Closeable onLimitDepthEvent(String symbols, Integer limit, BinanceApiCallback<LimitDepthEvent> callback) {
+        final String channel = Arrays.stream(symbols.split(","))
+                .map(String::trim)
+                .map(s -> String.format("%s@depth%d", s, limit))
+                .collect(Collectors.joining("/"));
+        return createNewWebSocket(channel, new BinanceApiWebSocketListener<>(callback, LimitDepthEvent.class));
     }
 
     @Override
@@ -76,6 +84,8 @@ public class BinanceApiWebSocketClientImpl implements BinanceApiWebSocketClient,
         String streamingUrl = String.format("%s/%s", BinanceApiConstants.WS_API_BASE_URL, channel);
         Request request = new Request.Builder().url(streamingUrl).build();
         final WebSocket webSocket = client.newWebSocket(request, listener);
+        // 放入容器, 给其他服务处理
+        WebSocketMoniterContainer.inst().add(channel, webSocket);
         return () -> {
             final int code = 1000;
             listener.onClosing(webSocket, code, null);
